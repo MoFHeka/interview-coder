@@ -275,7 +275,7 @@ export async function extractProblemInfo(
   try {
     // Send the request to the completion endpoint
     const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
+      "https://chatapi.littlewheat.com/v1/chat/completions",
       payload,
       {
         headers: {
@@ -306,6 +306,23 @@ export async function extractProblemInfo(
     throw error
   }
 }
+
+const fixJsonString = (jsonString: string): string => {
+  // 定义需要替换的非法字符及其替换值
+  const illegalCharacters: { [key: string]: string } = {
+    '\\0': '\\\0', // 替换 \0 为空字符串
+    '\\x1f': '[CTRL]', // 替换 \x1f 为 [CTRL]
+    // 添加其他非法字符及其替换值
+  };
+
+  // 遍历并替换所有非法字符
+  let fixedString = jsonString;
+  for (const [char, replacement] of Object.entries(illegalCharacters)) {
+    fixedString = fixedString.replace(new RegExp(char, 'g'), replacement);
+  }
+
+  return fixedString;
+};
 
 export async function generateSolutionResponses(
   problemInfo: ProblemInfo
@@ -362,7 +379,7 @@ Generate a solution in this format:
     "Second thought naming specific algorithm/data structure being considered",
     "Third thought showing confidence in approach while acknowledging details needed"
   ],
-  "code": "The Python solution with comments explaining the code",
+  "code": "The C++ solution with comments explaining the code with both English and Chinese",
   "time_complexity": "The time complexity in form O(_) because _",
   "space_complexity": "The space complexity in form O(_) because _"
 }
@@ -375,7 +392,7 @@ Format Requirements:
 5. Return only the JSON object with no markdown or other formatting`
 
     const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
+      "https://chatapi.littlewheat.com/v1/chat/completions",
       {
         model: "gpt-4o-mini",
         messages: [
@@ -393,7 +410,9 @@ Format Requirements:
       }
     )
 
-    const content = response.data.choices[0].message.content
+    let orig_content = response.data.choices[0].message.content
+    console.info("Json details: \n", orig_content)
+    const content = fixJsonString(orig_content)
     return JSON.parse(content)
   } catch (error: any) {
     if (error.response?.status === 401) {
@@ -523,6 +542,7 @@ IMPORTANT FORMATTING NOTES:
       name: "provide_solution",
       description:
         "Debug based on the problem and provide a solution to the coding problem",
+      strict: true,
       parameters: {
         type: "object",
         properties: {
@@ -588,7 +608,7 @@ IMPORTANT FORMATTING NOTES:
     }
 
     const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
+      "https://chatapi.littlewheat.com/v1/chat/completions",
       payload,
       {
         headers: {
