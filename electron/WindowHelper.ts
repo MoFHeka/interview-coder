@@ -9,7 +9,7 @@ const isMac = process.platform === "darwin"
 
 const startUrl = isDev
   ? "http://localhost:5173"
-  : `file://${path.join(__dirname, "../dist/index.html")}`
+  : `file://${path.join(__dirname, "../index.html")}`
 
 export class WindowHelper {
   private mainWindow: BrowserWindow | null = null
