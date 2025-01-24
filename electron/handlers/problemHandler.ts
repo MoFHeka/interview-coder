@@ -1,5 +1,6 @@
 // Import necessary modules
 import axios from "axios"
+import { jsonrepair } from 'jsonrepair'
 import { store } from "../store"
 
 // Define interfaces for ProblemInfo and related structures
@@ -265,7 +266,7 @@ export async function extractProblemInfo(
 
   // Prepare the request payload
   const payload = {
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     messages: messages,
     functions: functions,
     function_call: { name: "extract_problem_details" },
@@ -312,6 +313,8 @@ const fixJsonString = (jsonString: string): string => {
   const illegalCharacters: { [key: string]: string } = {
     '\\0': '\\\0', // 替换 \0 为空字符串
     '\\x1f': '[CTRL]', // 替换 \x1f 为 [CTRL]
+    '```json\n': '',
+
     // 添加其他非法字符及其替换值
   };
 
@@ -320,6 +323,9 @@ const fixJsonString = (jsonString: string): string => {
   for (const [char, replacement] of Object.entries(illegalCharacters)) {
     fixedString = fixedString.replace(new RegExp(char, 'g'), replacement);
   }
+
+  // 替换Markdown代码块标记
+  fixedString = fixedString.replace(/```json\n|```|json/g, '');
 
   return fixedString;
 };
@@ -394,7 +400,7 @@ Format Requirements:
     const response = await axios.post(
       "https://chatapi.littlewheat.com/v1/chat/completions",
       {
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [
           {
             role: "user",
@@ -412,7 +418,8 @@ Format Requirements:
 
     let orig_content = response.data.choices[0].message.content
     console.info("Json details: \n", orig_content)
-    const content = fixJsonString(orig_content)
+    orig_content = fixJsonString(orig_content)
+    const content = jsonrepair(orig_content)
     return JSON.parse(content)
   } catch (error: any) {
     if (error.response?.status === 401) {
@@ -592,7 +599,7 @@ IMPORTANT FORMATTING NOTES:
 
   // Prepare the payload for the API call
   const payload = {
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     messages: messages,
     max_tokens: 4000,
     temperature: 0,
